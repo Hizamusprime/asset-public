@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Asset Register — Heizen Systems</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #0d0905;
+    --surface:  #1a0e06;
+    --border:   #2e1f0e;
+    --gold:     #c9a052;
+    --gold-dim: #7a5e2a;
+    --text:     #f0e6d3;
+    --muted:    #7a6a56;
+    --active:   #2e7d32;
+    --storage:  #b08000;
+    --repair:   #b34700;
+    --decomm:   #6d1c1c;
+    --lost:     #3a3a3a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .brand-name {
+    font-family: 'Sora', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+  }
+
+  .brand-sub {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .clock {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.06em;
+  }
+
+  .sync-badge {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sync-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    margin-right: 6px;
+    vertical-align: middle;
+    transition: background 0.4s;
+  }
+  .sync-dot.live { background: #4caf50; box-shadow: 0 0 6px #4caf5066; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat {
+    flex: 1;
+    padding: 14px 24px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .stat-value {
+    font-family: 'Sora', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Table ── */
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: #120b03;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 12px 24px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: #1f1008; }
+
+  tbody td {
+    padding: 14px 24px;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  .cell-id {
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    color: var(--gold-dim);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .cell-name {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .cell-desc {
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 320px;
+  }
+
+  .cell-location {
+    font-size: 13px;
+    color: #a08060;
+    white-space: nowrap;
+  }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .badge::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .badge-active    { background: #0d2e10; color: #66bb6a; }
+  .badge-active::before { background: #66bb6a; }
+
+  .badge-storage   { background: #2e2000; color: #ffca28; }
+  .badge-storage::before { background: #ffca28; }
+
+  .badge-repair    { background: #2e1200; color: #ff7043; }
+  .badge-repair::before { background: #ff7043; }
+
+  .badge-decomm    { background: #2e0a0a; color: #ef5350; }
+  .badge-decomm::before { background: #ef5350; }
+
+  .badge-lost      { background: #1a1a1a; color: #888; }
+  .badge-lost::before { background: #888; }
+
+  /* ── Empty / loading ── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: var(--muted);
+    gap: 12px;
+  }
+
+  .empty-icon { font-size: 40px; opacity: 0.4; }
+  .empty-text { font-size: 14px; letter-spacing: 0.06em; }
+
+  /* ── Flash on row update ── */
+  @keyframes rowflash {
+    0%   { background: #2a1a00; }
+    100% { background: transparent; }
+  }
+  .row-flash { animation: rowflash 1.2s ease-out; }
+
+  /* ── Footer ── */
+  footer {
+    padding: 10px 32px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-name">HEIZEN</span>
+    <span class="brand-sub">Asset Register</span>
+  </div>
+  <div class="header-right">
+    <div class="sync-badge"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Connecting…</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Assets</div></div>
+  <div class="stat"><div class="stat-value" id="s-active">—</div><div class="stat-label">Active</div></div>
+  <div class="stat"><div class="stat-value" id="s-storage">—</div><div class="stat-label">In Storage</div></div>
+  <div class="stat"><div class="stat-value" id="s-repair">—</div><div class="stat-label">In Repair</div></div>
+  <div class="stat"><div class="stat-value" id="s-lost">—</div><div class="stat-label">Lost / Decommissioned</div></div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Asset Name</th>
+        <th>Status</th>
+        <th>Location</th>
+        <th>Description</th>
+        <th>Date Added</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <tr><td colspan="6"><div class="empty"><div class="empty-icon">⧗</div><div class="empty-text">Loading assets…</div></div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <span>ulmwldoyhapqtcuhzkcr.supabase.co — asset_register</span>
+  <span id="lastSync">Last sync: —</span>
+</footer>
+
+<script>
+// ── CONFIG — update these two values ──────────────────────────────────────────
+const SUPABASE_URL  = 'https://ulmwldoyhapqtcuhzkcr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsbXdsZG95aGFwcXRjdWh6a2NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjIyNjcsImV4cCI6MjA5MzI5ODI2N30.i9_Twz-G5jaHSCECCztoiLNHpExfG4MnAhmMd7D93Xs';
+// ──────────────────────────────────────────────────────────────────────────────
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let assets = [];
+
+// Clock
+function tickClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-AU', { hour12: false });
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// Status badge HTML
+function badge(status) {
+  if (!status) return '<span class="badge badge-lost">Unknown</span>';
+  const map = {
+    'Active':          'active',
+    'In Storage':      'storage',
+    'In Repair':       'repair',
+    'Decommissioned':  'decomm',
+    'Lost':            'lost',
+  };
+  const cls = map[status] ?? 'lost';
+  return `<span class="badge badge-${cls}">${status}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function escHtml(s) {
+  if (!s) return '—';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Render table
+function render(flashId = null) {
+  const tbody = document.getElementById('tableBody');
+
+  if (!assets.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📦</div><div class="empty-text">No assets found. Add them in Notion.</div></div></td></tr>`;
+    updateStats();
+    return;
+  }
+
+  const sorted = [...assets].sort((a, b) => (a.asset_id ?? '').localeCompare(b.asset_id ?? ''));
+
+  tbody.innerHTML = sorted.map(a => `
+    <tr id="row-${a.notion_id}" class="${a.notion_id === flashId ? 'row-flash' : ''}">
+      <td class="cell-id">${escHtml(a.asset_id)}</td>
+      <td class="cell-name">${escHtml(a.asset_name)}</td>
+      <td>${badge(a.status)}</td>
+      <td class="cell-location">${escHtml(a.location)}</td>
+      <td class="cell-desc">${escHtml(a.description)}</td>
+      <td class="cell-id">${fmtDate(a.date_added)}</td>
+    </tr>
+  `).join('');
+
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent   = assets.length;
+  document.getElementById('s-active').textContent  = assets.filter(a => a.status === 'Active').length;
+  document.getElementById('s-storage').textContent = assets.filter(a => a.status === 'In Storage').length;
+  document.getElementById('s-repair').textContent  = assets.filter(a => a.status === 'In Repair').length;
+  document.getElementById('s-lost').textContent    = assets.filter(a => a.status === 'Lost' || a.status === 'Decommissioned').length;
+}
+
+function setSync(live, label) {
+  document.getElementById('syncDot').className   = live ? 'sync-dot live' : 'sync-dot';
+  document.getElementById('syncLabel').textContent = label;
+  document.getElementById('lastSync').textContent  = `Last sync: ${new Date().toLocaleTimeString('en-AU', { hour12: false })}`;
+}
+
+// Initial load
+async function loadAssets() {
+  const { data, error } = await db.from('asset_register').select('*').order('asset_id');
+  if (error) { setSync(false, 'Error'); console.error(error); return; }
+  assets = data ?? [];
+  render();
+  setSync(true, 'Live');
+}
+
+// Realtime subscription
+db.channel('asset-register-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'asset_register' }, payload => {
+    const { eventType, new: row, old } = payload;
+    if (eventType === 'INSERT') {
+      assets.push(row);
+      render(row.notion_id);
+    } else if (eventType === 'UPDATE') {
+      assets = assets.map(a => a.notion_id === row.notion_id ? row : a);
+      render(row.notion_id);
+    } else if (eventType === 'DELETE') {
+      assets = assets.filter(a => a.notion_id !== old.notion_id);
+      render();
+    }
+    setSync(true, 'Live');
+  })
+  .subscribe(status => {
+    if (status === 'SUBSCRIBED') setSync(true, 'Live');
+    else setSync(false, status);
+  });
+
+loadAssets();
+</script>
+</body>
+</html>
